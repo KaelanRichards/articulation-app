@@ -4,6 +4,7 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { WordSuggestions } from "./WordSuggestions";
 import { getWordSuggestions, getWordDefinition } from "../utils/anthropic";
+import db from "../utils/db";
 
 const dictionaryAPI = async (word) => {
   try {
@@ -21,11 +22,21 @@ const VocabularyTab = ({ wordList, setWordList }) => {
   const [wordDetails, setWordDetails] = useState(null);
   const [wordSuggestions, setWordSuggestions] = useState([]);
 
+  useEffect(() => {
+    loadWordsFromDB();
+  }, []);
+
+  const loadWordsFromDB = async () => {
+    const words = await db.words.toArray();
+    setWordList(words);
+  };
+
   const addNewWord = async () => {
     if (newWord.trim() !== "") {
       try {
         const details = await dictionaryAPI(newWord.trim());
-        setWordList((prevList) => [...prevList, details]);
+        const id = await db.words.add(details);
+        setWordList((prevList) => [...prevList, { ...details, id }]);
         setWordDetails(details);
         setNewWord("");
       } catch (error) {
@@ -73,8 +84,8 @@ const VocabularyTab = ({ wordList, setWordList }) => {
           </div>
         )}
         <ul>
-          {wordList.map((word, index) => (
-            <li key={index} className="mb-2">
+          {wordList.map((word) => (
+            <li key={word.id} className="mb-2">
               {word.word}
             </li>
           ))}
